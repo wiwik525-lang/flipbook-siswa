@@ -1,209 +1,152 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Flipbook Interaktif - Demo</title>
-
-  <!-- CSS sederhana -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flipbook Interaktif</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 8px; background:#f6f6f6; }
-    #flipbook { width: 900px; height: 650px; margin: 20px auto; }
-    .page { width: 450px; height: 650px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.2); background: white; display:flex; align-items:center; justify-content:center; position:relative; }
-    .page canvas { max-width:100%; height:auto; display:block; }
-
-    /* tombol di halaman */
-    .open-question-btn {
-      position: absolute; bottom: 20px; left: 20px;
-      padding: 8px 12px; border-radius:6px; background:#007bff; color:white; border:none; cursor:pointer;
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
     }
-
-    /* Modal soal */
-    #questionModal { display:none; position: fixed; left:0; top:0; right:0; bottom:0; background: rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:9999; }
-    .modal-inner { width: 420px; background: #fff; padding: 16px; border-radius:8px; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
-    .modal-inner h3 { margin-top:0; }
-    .modal-inner textarea { width:100%; height:90px; resize:none; padding:8px; font-size:14px; }
-    .modal-inner input[type=text] { width:100%; padding:6px; margin-bottom:6px; }
-    .modal-actions { text-align:right; margin-top:8px; }
-    .modal-actions button { padding:8px 12px; margin-left:6px; border-radius:6px; cursor:pointer; }
-    .btn-belum { background:#ccc; border:none; }
-    .btn-lanjut { background:#28a745; color:#fff; border:none; }
-
-    /* responsive */
-    @media (max-width:1000px) {
-      #flipbook { width: 100%; height: 60vh; }
-      .page { height: 60vh; }
+    #flipbook {
+      width: 800px;
+      height: 600px;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    .page {
+      width: 400px;
+      height: 600px;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    #questionForm {
+      margin-top: 20px;
+      display: none;
+    }
+    #questionForm input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      font-size: 16px;
+    }
+    #questionForm button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
     }
   </style>
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- Turn.js -->
+  <script src="https://cdn.jsdelivr.net/gh/blasten/turn.js@4/turn.min.js"></script>
 </head>
 <body>
 
-  <h2 style="text-align:center">Flipbook Interaktif (contoh)</h2>
+<div id="flipbook">
+  <!-- Halaman 1 -->
+  <div class="page">
+    <h2>Halaman 1</h2>
+    <p>Selamat datang di flipbook interaktif.</p>
+  </div>
+  <!-- Halaman 2 -->
+  <div class="page">
+    <h2>Halaman 2</h2>
+    <p>Ini adalah halaman kedua.</p>
+  </div>
+  <!-- ... Halaman 10 -->
+  <div class="page" id="page10">
+    <h2>Halaman 10</h2>
+    <p>Baca materi berikut dengan seksama.</p>
+    <p>Ketika siap, klik tombol di bawah untuk menjawab soal.</p>
+    <button id="showQuestion">Jawab Soal</button>
 
-  <div id="flipbook"></div>
-
-  <!-- Modal soal -->
-  <div id="questionModal">
-    <div class="modal-inner">
-      <h3>Soal — Halaman 10</h3>
-      <label>Nama (opsional)</label>
-      <input type="text" id="studentName" placeholder="Nama siswa...">
-      <label>Jawaban (maks 100 karakter)</label>
-      <textarea id="answer" maxlength="100" placeholder="Tulis jawaban di sini (max 100 karakter)"></textarea>
-      <div style="color:#666; font-size:12px; margin-top:6px;">*Jawaban akan tersimpan ke Google Spreadsheet.</div>
-      <div class="modal-actions">
-        <button class="btn-belum" id="btnBelum">Belum</button>
-        <button class="btn-lanjut" id="btnLanjut">Lanjut</button>
-      </div>
-      <div id="modalStatus" style="margin-top:8px; font-size:13px; color:#333;"></div>
+    <div id="questionForm">
+      <p><strong>Soal:</strong> Berapa hasil dari 2 + 2?</p>
+      <input type="text" id="answer" placeholder="Masukkan jawaban Anda" />
+      <button id="submitAnswer">Kirim Jawaban</button>
     </div>
   </div>
+  <!-- Halaman 11 -->
+  <div class="page" id="page11">
+    <h2>Halaman 11</h2>
+    <p>Selamat, Anda sudah menjawab soal dan bisa melanjutkan membaca.</p>
+  </div>
+  <!-- Halaman 12 -->
+  <div class="page">
+    <h2>Halaman 12</h2>
+    <p>Halaman berikutnya...</p>
+  </div>
+</div>
 
-  <!-- LIBRARIES -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  $(document).ready(function() {
+    let answered = false;
 
-  <!-- PDF.js (CDN) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-  <!-- worker -->
-  <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-  </script>
-
-  <!-- Turn.js: letakkan file js/turn.min.js di folder js/turn.min.js atau gunakan link yang Anda download -->
-  <script src="js/turn.min.js"></script>
-
-  <script>
-  (function(){
-    // ========== CONFIG ==========
-    const FILE_ID = '1zCZsbD6vijTXsamfkYhSkWynEfLsn3Nb'; // << ganti kalau perlu
-   const PDF_URL = 'materi.pdf';
-    const APPSCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzylDDd-dZIikHV3kPTsNY-yJ3bcJapuuxl020QJ_byEp9_w4fuIhvzpDhhSGBxb6Cz/exec'; // << ganti dengan URL Web App Anda
-
-    // halaman kunci: setelah jawab halaman 10, baru bisa ke 11
-    const lockPage = 10;
-    let maxUnlockedPage = lockPage; // awal hanya sampai halaman 10 terbuka
-    let answeredPages = {}; // answeredPages[10] = true jika sudah submit
-    // ============================
-
-    // load PDF
-    pdfjsLib.getDocument(PDF_URL).promise.then(async function(pdf) {
-      const total = pdf.numPages;
-      let rendered = 0;
-
-      for (let p=1; p<=total; p++) {
-        const page = await pdf.getPage(p);
-        const viewport = page.getViewport({ scale: 1.5 }); // ubah scale jika mau ukuran lain
-        const canvas = document.createElement('canvas');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext('2d');
-
-        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-
-        // bungkus canvas dalam div.page
-        const pageDiv = document.createElement('div');
-        pageDiv.className = 'page';
-        pageDiv.dataset.pagenumber = p;
-        pageDiv.appendChild(canvas);
-
-        // kalau halaman 10 --> tambahkan tombol buka soal
-        if (p === lockPage) {
-          const btn = document.createElement('button');
-          btn.className = 'open-question-btn';
-          btn.textContent = 'Buka Pertanyaan';
-          btn.onclick = showQuestionModal;
-          pageDiv.appendChild(btn);
+    // Inisialisasi flipbook
+    $('#flipbook').turn({
+      width: 800,
+      height: 600,
+      autoCenter: true,
+      pages: 12,
+      when: {
+        turning: function(event, page, view) {
+          // Cegah pindah ke halaman 11 jika belum jawab
+          if(page === 11 && !answered) {
+            alert('Anda harus menjawab soal dulu di halaman 10');
+            event.preventDefault();
+            $('#flipbook').turn('page', 10);
+          }
         }
-
-        document.getElementById('flipbook').appendChild(pageDiv);
-        rendered++;
-
-        // kalau seluruh halaman sudah dirender, init flipbook
-        if (rendered === total) initFlipbook();
       }
-    }).catch(function(err){
-      alert('Gagal memuat PDF. Pastikan file Drive diset "Anyone with link can view".\nError: '+err.message);
     });
 
-    function initFlipbook() {
-      // inisialisasi turn.js
-      $("#flipbook").turn({
-        width: 900,
-        height: 650,
-        autoCenter: true
-      });
-
-      // event - cegah membuka halaman > maxUnlockedPage
-      $("#flipbook").bind("turning", function(e, page, view) {
-        const current = $("#flipbook").turn("page"); // halaman sekarang
-        if (page > maxUnlockedPage) {
-          // batalkan dengan mengembalikan ke halaman sekarang
-          setTimeout(function(){ $("#flipbook").turn("page", current); }, 1);
-          // munculkan modal soal
-          showQuestionModal();
-        }
-      });
-    }
-
-    // Modal controls
-    function showQuestionModal(){
-      document.getElementById('modalStatus').textContent = '';
-      document.getElementById('questionModal').style.display = 'flex';
-      document.getElementById('answer').value = '';
-      document.getElementById('studentName').value = '';
-      document.getElementById('answer').focus();
-    }
-    function hideQuestionModal(){
-      document.getElementById('questionModal').style.display = 'none';
-    }
-
-    document.getElementById('btnBelum').addEventListener('click', function(){
-      hideQuestionModal();
+    // Tampilkan form soal saat tombol diklik
+    $('#showQuestion').click(function() {
+      $('#questionForm').show();
+      $(this).hide();
     });
 
-    document.getElementById('btnLanjut').addEventListener('click', function(){
-      const nama = document.getElementById('studentName').value.trim();
-      const jawaban = document.getElementById('answer').value.trim();
+    // Fungsi simpan jawaban ke Google Sheets via Web App
+    function saveAnswerToSheet(answer) {
+      const url = 'https://script.google.com/macros/s/AKfycbzylDDd-dZIikHV3kPTsNY-yJ3bcJapuuxl020QJ_byEp9_w4fuIhvzpDhhSGBxb6Cz/exec'; // Ganti dengan URL Web App Google Apps Script Anda
 
-      if (jawaban.length === 0) {
-        alert('Mohon isi jawaban terlebih dahulu.');
-        return;
-      }
-      if (jawaban.length > 100) {
-        alert('Jawaban maksimal 100 karakter.');
-        return;
-      }
-
-      // kirim ke Apps Script Web App
-      const payload = { nama: nama, halaman: lockPage, jawaban: jawaban };
-      document.getElementById('modalStatus').textContent = 'Mengirim...';
-
-      fetch(APPSCRIPT_URL, {
+      return fetch(url, {
         method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { 'Content-Type': 'application/json' }
+        body: JSON.stringify({answer: answer}),
+        headers: {'Content-Type': 'application/json'}
       })
-      .then(resp => resp.json())
-      .then(data => {
-        if (data.result && data.result === 'ok') {
-          document.getElementById('modalStatus').textContent = 'Terkirim. Halaman berikutnya terbuka.';
-          answeredPages[lockPage] = true;
-          maxUnlockedPage = Math.max(maxUnlockedPage, lockPage + 1);
-          hideQuestionModal();
-          // buka halaman selanjutnya
-          setTimeout(function(){ $("#flipbook").turn("page", lockPage + 1); }, 150);
-        } else {
-          document.getElementById('modalStatus').textContent = 'Gagal mengirim (server error). Coba lagi.';
-          console.error(data);
-        }
-      })
-      .catch(err => {
-        document.getElementById('modalStatus').textContent = 'Gagal mengirim: ' + err.message;
-        console.error(err);
-      });
-    });
+      .then(response => response.json());
+    }
 
-  })();
-  </script>
+    // Submit jawaban
+    $('#submitAnswer').click(function() {
+      const answer = $('#answer').val().trim();
+      if(answer === '') {
+        alert('Jawaban tidak boleh kosong');
+        return;
+      }
+
+      // Kirim jawaban ke Google Sheets
+      saveAnswerToSheet(answer)
+        .then(data => {
+          if(data.result === 'success') {
+            alert('Jawaban berhasil disimpan. Anda bisa lanjut ke halaman berikutnya.');
+            answered = true;
+            $('#flipbook').turn('page', 11);
+          } else {
+            alert('Gagal menyimpan jawaban: ' + (data.message || 'Unknown error'));
+          }
+        })
+        .catch(() => {
+          alert('Gagal menyimpan jawaban. Periksa koneksi internet Anda.');
+        });
+    });
+  });
+</script>
+
 </body>
 </html>
