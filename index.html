@@ -1,51 +1,126 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Flipbook Interaktif - Demo</title>
-
+  <meta charset="UTF-8">
+  <title>PDF Viewer dengan Pertanyaan</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 8px; background:#f6f6f6; }
-    #flipbook { width: 900px; height: 650px; margin: 20px auto; }
-    .page { width: 450px; height: 650px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.2); background: white; display:flex; align-items:center; justify-content:center; position:relative; }
-    .page canvas { max-width:100%; height:auto; display:block; }
-
-    .open-question-btn {
-      position: absolute; bottom: 20px; left: 20px;
-      padding: 8px 12px; border-radius:6px; background:#007bff; color:white; border:none; cursor:pointer;
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #pdf-container { width: 100%; height: 100vh; overflow: auto; background: #ccc; }
+    canvas { display: block; margin: 0 auto; }
+    /* Overlay blok pertanyaan */
+    #overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
     }
-
-    #questionModal { display:none; position: fixed; left:0; top:0; right:0; bottom:0; background: rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:9999; }
-    .modal-inner { width: 420px; background: #fff; padding: 16px; border-radius:8px; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
-    .modal-inner h3 { margin-top:0; }
-    .modal-inner textarea { width:100%; height:90px; resize:none; padding:8px; font-size:14px; }
-    .modal-inner input[type=text] { width:100%; padding:6px; margin-bottom:6px; }
-    .modal-actions { text-align:right; margin-top:8px; }
-    .modal-actions button { padding:8px 12px; margin-left:6px; border-radius:6px; cursor:pointer; }
-    .btn-belum { background:#ccc; border:none; }
-    .btn-lanjut { background:#28a745; color:#fff; border:none; }
-
-    @media (max-width:1000px) {
-      #flipbook { width: 100%; height: 60vh; }
-      .page { height: 60vh; }
+    #overlay-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
     }
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 10px 5px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .lanjut { background: green; color: white; }
+    .batal { background: red; color: white; }
   </style>
 </head>
 <body>
 
-  <h2 style="text-align:center">Flipbook Interaktif (contoh)</h2>
-  <div id="flipbook"></div>
+<div id="pdf-container"></div>
 
-  <!-- Modal soal -->
-  <div id="questionModal">
-    <div class="modal-inner">
-      <h3>Soal — Halaman 10</h3>
-      <label>Nama (opsional)</label>
-      <input type="text" id="studentName" placeholder="Nama siswa...">
-      <label>Jawaban (maks 100 karakter)</label>
-      <textarea id="answer" maxlength="100" placeholder="Tulis jawaban di sini (max 100 karakter)"></textarea>
-      <div style="color:#666; font-size:12px; margin-top:6px;">*Jawaban akan tersimpan ke Google Spreadsheet.</div>
-      <div class="modal-actions">
-        <button class="btn-belum" id="btnBelum">Belum</button>
-        <button class="btn-lanjut" id="btnLanjut
+<!-- Overlay pertanyaan -->
+<div id="overlay">
+  <div id="overlay-content">
+    <h3>Pertanyaan Halaman 10</h3>
+    <label>Nama:</label>
+    <input type="text" id="nama" required>
+    <label>Kelas:</label>
+    <input type="text" id="kelas" required>
+    <label>Pertanyaan: Siapa aktor dari cerita di halaman ini?</label>
+    <textarea id="jawaban" maxlength="100" required></textarea>
+    <br>
+    <button class="lanjut" onclick="lanjutkan()">Lanjut</button>
+    <button class="batal" onclick="batal()">Batal</button>
+  </div>
+</div>
+
+<script>
+const url = "https://dn790000.ca.archive.org/0/items/CeritaAnak/Cerita%20Rakyat%20Nusantara%202.pdf";
+
+let pdfDoc = null;
+let currentPage = 1;
+const pdfContainer = document.getElementById("pdf-container");
+
+pdfjsLib.getDocument(url).promise.then(pdf => {
+  pdfDoc = pdf;
+  renderPage(currentPage);
+});
+
+function renderPage(num) {
+  pdfDoc.getPage(num).then(page => {
+    const viewport = page.getViewport({ scale: 1.3 });
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    // Hapus halaman lama
+    pdfContainer.innerHTML = "";
+    pdfContainer.appendChild(canvas);
+
+    const renderContext = {
+      canvasContext: ctx,
+      viewport: viewport
+    };
+    page.render(renderContext);
+
+    // Jika masuk halaman 10 → tampilkan overlay
+    if (num === 10) {
+      document.getElementById("overlay").style.display = "flex";
+    }
+  });
+}
+
+function lanjutkan() {
+  const nama = document.getElementById("nama").value.trim();
+  const kelas = document.getElementById("kelas").value.trim();
+  const jawaban = document.getElementById("jawaban").value.trim();
+
+  if (!nama || !kelas || !jawaban) {
+    alert("Harap isi semua kolom!");
+    return;
+  }
+
+  document.getElementById("overlay").style.display = "none";
+  if (currentPage < pdfDoc.numPages) {
+    currentPage++;
+    renderPage(currentPage);
+  }
+}
+
+function batal() {
+  alert("Anda tidak bisa melanjutkan ke halaman berikutnya!");
+  document.getElementById("overlay").style.display = "flex"; // tetap blok
+}
+</script>
+
+</body>
+</html>
